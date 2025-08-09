@@ -6,6 +6,10 @@ __pycache__/
 credentials.json
 token.json
 
+client_secret.json
+token1.json
+
+
 # Python cache files
 __pycache__/
 *.pyc
