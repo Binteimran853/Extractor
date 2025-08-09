@@ -4,6 +4,7 @@ __pycache__/
 
 # Ignore Google API credentials
 credentials.json
+credentials-1.json
 token.json
 
 client_secret.json
