@@ -1,0 +1,15 @@
+credentials.json
+token.json
+__pycache__/
+
+# Ignore Google API credentials
+credentials.json
+token.json
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+.env
