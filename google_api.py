@@ -41,7 +41,7 @@ from base64 import urlsafe_b64decode
 import re
 
 def get_latest_code(service, user_input):
-    query = f'from:info@account.netflix.com to:{user_input} subject:"Your Netflix temporary access code" label:unread in:inbox newer_than:5h'
+    query = f'from:info@account.netflix.com to:{user_input} subject:"Your sign-in code" label:unread in:inbox newer_than:15min'
 
     results = service.users().messages().list(userId='me', q=query, maxResults=5).execute()
     messages = results.get('messages', [])
