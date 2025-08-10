@@ -1,7 +1,7 @@
 from __future__ import print_function
 import re
 from base64 import urlsafe_b64decode
-
+from urllib.parse import unquote
 import os
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -36,56 +36,67 @@ def authenticate_gmail():
     return build('gmail', 'v1', credentials=creds)
 
 
-    
 from base64 import urlsafe_b64decode
 import re
+from bs4 import BeautifulSoup
 
 def get_latest_code(service, user_input):
-    query = f'from:info@account.netflix.com to:{user_input} subject:"Your sign-in code" label:unread in:inbox newer_than:15min'
-
+    query = (
+        f'from:info@account.netflix.com to:{user_input} '
+        'subject:"Your Netflix temporary access code" '
+        'label:unread in:inbox newer_than:45m'
+    )
     results = service.users().messages().list(userId='me', q=query, maxResults=5).execute()
     messages = results.get('messages', [])
 
     if not messages:
         print("No messages found.")
-        return None, None
+        return  None, []
 
     msg_id = messages[0]['id']
     msg = service.users().messages().get(userId='me', id=msg_id, format='full').execute()
 
-    payload = msg['payload']
-    parts = payload.get('parts', [])
-    plain_body = None
-    html_body = None
+    def get_parts(payload):
+        if 'parts' in payload:
+            for part in payload['parts']:
+                yield from get_parts(part)
+        else:
+            yield payload
 
-    if parts:
-        for part in parts:
-            if part['mimeType'] == 'text/html':
-                html_body = part['body'].get('data')
-            elif part['mimeType'] == 'text/plain':
-                plain_body = part['body'].get('data')
-    else:
-        # Single part email
-        if payload['mimeType'] == 'text/html':
-            html_body = payload['body'].get('data')
-        elif payload['mimeType'] == 'text/plain':
-            plain_body = payload['body'].get('data')
+    plain_body_decoded = ''
+    html_body_decoded = ''
 
-    if html_body:
-        html_body_decoded = urlsafe_b64decode(html_body).decode('utf-8')
-    else:
-        html_body_decoded = ''
+    for part in get_parts(msg['payload']):
+        mimeType = part.get('mimeType')
+        data = part['body'].get('data')
+        if data:
+            decoded = urlsafe_b64decode(data).decode('utf-8', errors='ignore')
+            if mimeType == 'text/plain':
+                plain_body_decoded += decoded
+            elif mimeType == 'text/html':
+                html_body_decoded += decoded
 
-    if plain_body:
-        plain_body_decoded = urlsafe_b64decode(plain_body).decode('utf-8')
-    else:
-        plain_body_decoded = ''
-
-    # Extract OTP from plain text body (or HTML body fallback)
-    match = re.search(r'\b\d{6}\b', plain_body_decoded)
-    if not match:
-        match = re.search(r'\b\d{6}\b', html_body_decoded)
-
+    # Extract OTP
+    match = re.search(r'\b\d{4,8}\b', plain_body_decoded) or re.search(r'\b\d{4,8}\b', html_body_decoded)
     otp = match.group(0) if match else None
 
-    return otp, html_body_decoded
+    # Extract Netflix verify link
+    verify_link = None
+    if html_body_decoded:
+        soup = BeautifulSoup(html_body_decoded, "html.parser")
+        anchors = soup.find_all('a', href=True)
+
+        for a in anchors:
+            href = a['href'].strip()
+
+            # Decode Google redirect
+            if href.startswith("https://www.google.com/url?q="):
+                href = unquote(href.split("q=")[1].split("&")[0])
+
+            # Match the Netflix verification link
+            if "/account/travel/verify" in href and "messageGuid=" in href:
+                verify_link = href  # keep the whole thing, no slicing
+                print("Netflix Verification Link Found:", verify_link)
+                break
+
+    return  html_body_decoded, verify_link 
