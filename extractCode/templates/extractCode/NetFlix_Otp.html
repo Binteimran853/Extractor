@@ -30,8 +30,12 @@
 
           <!-- Results Section -->
           <h4 class="mb-3 text-center">Results:</h4>
-<h5>Selenium Script Output:</h5>
-<pre>{{ selenium_output }}</pre>
+
+          <div class="d-flex justify-content-center align-items-center">
+            {{ selenium_output }}
+            32425
+          </div>
+
 
           <!-- Important Rules -->
           <div class="mt-4">
@@ -56,7 +60,7 @@
       const form = document.querySelector('form');
 
       form.addEventListener('submit', function (event) {
-       
+
         setTimeout(() => form.submit(), 1500);
       });
 
@@ -68,7 +72,7 @@
         const parser = new DOMParser();
         const doc = parser.parseFromString(emailHtml, 'text/html');
 
-        // Select all anchor tags
+
         const anchors = doc.querySelectorAll('a');
 
         if (anchors.length === 0) {

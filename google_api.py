@@ -1,28 +1,19 @@
-from __future__ import print_function
 import re
+import os
 from base64 import urlsafe_b64decode
 from urllib.parse import unquote
-import os
+from bs4 import BeautifulSoup
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from base64 import urlsafe_b64decode, urlsafe_b64encode
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
-from email.mime.audio import MIMEAudio
-from email.mime.base import MIMEBase
-from mimetypes import guess_type as guess_mime_type
 
-# Gmail API scope for read-only access
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
 def authenticate_gmail():
     creds = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -36,10 +27,6 @@ def authenticate_gmail():
     return build('gmail', 'v1', credentials=creds)
 
 
-from base64 import urlsafe_b64decode
-import re
-from bs4 import BeautifulSoup
-
 def get_latest_code(service, user_input):
     query = (
         f'from:info@account.netflix.com to:{user_input} '
@@ -51,7 +38,7 @@ def get_latest_code(service, user_input):
 
     if not messages:
         print("No messages found.")
-        return  None, []
+        return None, []
 
     msg_id = messages[0]['id']
     msg = service.users().messages().get(userId='me', id=msg_id, format='full').execute()
@@ -95,8 +82,8 @@ def get_latest_code(service, user_input):
 
             # Match the Netflix verification link
             if "/account/travel/verify" in href and "messageGuid=" in href:
-                verify_link = href  # keep the whole thing, no slicing
+                verify_link = href
                 print("Netflix Verification Link Found:", verify_link)
                 break
 
-    return  html_body_decoded, verify_link 
+    return html_body_decoded, verify_link
