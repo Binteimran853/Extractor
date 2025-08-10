@@ -16,21 +16,19 @@ from email.mime.base import MIMEBase
 from mimetypes import guess_type as guess_mime_type
 
 # Gmail API scope for read-only access
-SCOPES = ['https://mail.google.com/']
-our_email = 'binteimran853@gmail.com'
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
 def authenticate_gmail():
     creds = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
+
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES
-            )
+            flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
             creds = flow.run_local_server(port=0)
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
@@ -39,53 +37,55 @@ def authenticate_gmail():
 
 
     
-
+from base64 import urlsafe_b64decode
+import re
 
 def get_latest_code(service, user_input):
-    query = f'from:{our_email} to:{user_input} subject:"Your sign-in code" label:unread in:inbox newer_than:15m'
+    query = f'from:info@account.netflix.com to:{user_input} subject:"Your Netflix temporary access code" label:unread in:inbox newer_than:5h'
+
     results = service.users().messages().list(userId='me', q=query, maxResults=5).execute()
     messages = results.get('messages', [])
 
     if not messages:
         print("No messages found.")
-        return None
+        return None, None
 
     msg_id = messages[0]['id']
     msg = service.users().messages().get(userId='me', id=msg_id, format='full').execute()
 
-    # Get the body text
     payload = msg['payload']
     parts = payload.get('parts', [])
-    body_data = None
+    plain_body = None
+    html_body = None
 
     if parts:
-        # Sometimes OTP is in multipart -> find text/plain part
         for part in parts:
-            if part['mimeType'] == 'text/plain':
-                body_data = part['body']['data']
-                break
+            if part['mimeType'] == 'text/html':
+                html_body = part['body'].get('data')
+            elif part['mimeType'] == 'text/plain':
+                plain_body = part['body'].get('data')
     else:
         # Single part email
-        body_data = payload['body'].get('data')
+        if payload['mimeType'] == 'text/html':
+            html_body = payload['body'].get('data')
+        elif payload['mimeType'] == 'text/plain':
+            plain_body = payload['body'].get('data')
 
-    if not body_data:
-        print("No body data found.")
-        return None
-
-    body_text = urlsafe_b64decode(body_data).decode('utf-8')
-
-    # Extract OTP (assuming it's 6 digits)
-    match = re.search(r'\b\d{6}\b', body_text)
-    if match:
-        return match.group(0)
-
-    return None
-
-if __name__ == '__main__':
-    service = authenticate_gmail()
-    user_input = ""
-    code = get_latest_code(service, user_input)
-    if code:
-        print(f"Your verification code is: {code}")
+    if html_body:
+        html_body_decoded = urlsafe_b64decode(html_body).decode('utf-8')
     else:
-        print("No code found in recent emails.")
+        html_body_decoded = ''
+
+    if plain_body:
+        plain_body_decoded = urlsafe_b64decode(plain_body).decode('utf-8')
+    else:
+        plain_body_decoded = ''
+
+    # Extract OTP from plain text body (or HTML body fallback)
+    match = re.search(r'\b\d{6}\b', plain_body_decoded)
+    if not match:
+        match = re.search(r'\b\d{6}\b', html_body_decoded)
+
+    otp = match.group(0) if match else None
+
+    return otp, html_body_decoded

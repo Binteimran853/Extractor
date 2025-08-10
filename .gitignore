@@ -14,7 +14,8 @@ token1.json
 # Python cache files
 __pycache__/
 *.pyc
-
+# database files
+db.sqlite3
 # Virtual environment
 venv/
 .env
