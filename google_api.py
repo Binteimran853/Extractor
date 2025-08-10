@@ -44,7 +44,7 @@ def get_latest_code(service, user_input):
     query = (
         f'from:info@account.netflix.com to:{user_input} '
         'subject:"Your Netflix temporary access code" '
-        'label:unread in:inbox newer_than:45m'
+        'label:unread in:inbox newer_than:15m'
     )
     results = service.users().messages().list(userId='me', q=query, maxResults=5).execute()
     messages = results.get('messages', [])
