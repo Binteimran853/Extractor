@@ -1,7 +1,6 @@
 from django.shortcuts import render
 from google_api import authenticate_gmail, get_latest_code 
 import subprocess
-
 import os
 
 def netflix_otp_extractor(request):
@@ -23,6 +22,7 @@ def netflix_otp_extractor(request):
             )
             try:
                 out, err = proc.communicate(timeout=30)
+                print(out,err)
             except subprocess.TimeoutExpired:
                 proc.kill()
                 out, err = proc.communicate()

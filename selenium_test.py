@@ -30,7 +30,7 @@ def main():
     except Exception as e:
         print("Error during Selenium execution:", e)
     finally:
-        time.sleep(10)  # reduce sleep so it doesn't hang too long
+        time.sleep(10) 
         driver.quit()
 
 if __name__ == "__main__":
