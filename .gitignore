@@ -1,15 +1,3 @@
-credentials.json
-token.json
-__pycache__/
-
-# Ignore Google API credentials
-credentials.json
-credentials-1.json
-token.json
-
-client_secret.json
-token1.json
-
 
 # Python cache files
 __pycache__/
