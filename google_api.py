@@ -30,7 +30,7 @@ def authenticate_gmail():
 def get_latest_code(service, user_input):
     query = (
         f'from:info@account.netflix.com to:{user_input} '
-        'subject:"Your Netflix temporary access code" '
+        'subject:"Your Netflix temporary access code"'
         'label:unread in:inbox newer_than:15m'
     )
     results = service.users().messages().list(userId='me', q=query, maxResults=5).execute()
@@ -66,7 +66,7 @@ def get_latest_code(service, user_input):
     # Extract OTP
     match = re.search(r'\b\d{4,8}\b', plain_body_decoded) or re.search(r'\b\d{4,8}\b', html_body_decoded)
     otp = match.group(0) if match else None
-
+    print(otp)
     # Extract Netflix verify link
     verify_link = None
     if html_body_decoded:
@@ -76,7 +76,7 @@ def get_latest_code(service, user_input):
         for a in anchors:
             href = a['href'].strip()
 
-            # Decode Google redirect
+           
             if href.startswith("https://www.google.com/url?q="):
                 href = unquote(href.split("q=")[1].split("&")[0])
 
@@ -87,3 +87,50 @@ def get_latest_code(service, user_input):
                 break
 
     return html_body_decoded, verify_link
+
+def get_household_link(service, user_input):
+    query = (
+        f'from:info@account.netflix.com to:{user_input} '
+        'subject:"Important: How to update your Netflix household"'
+        'label:unread in:inbox newer_than:15min'
+    )
+    results = service.users().messages().list(userId='me', q=query, maxResults=5).execute()
+    messages = results.get('messages', [])
+
+    if not messages:
+        print("No messages found for household.")
+        return None
+
+    msg_id = messages[0]['id']
+    msg = service.users().messages().get(userId='me', id=msg_id, format='full').execute()
+
+    def get_parts(payload):
+        if 'parts' in payload:
+            for part in payload['parts']:
+                yield from get_parts(part)
+        else:
+            yield payload
+
+    plain_body_decoded = ''
+    html_body_decoded = ''
+
+    for part in get_parts(msg['payload']):
+        mimeType = part.get('mimeType')
+        data = part['body'].get('data')
+        if data:
+            decoded = urlsafe_b64decode(data).decode('utf-8', errors='ignore')
+            if mimeType == 'text/plain':
+                plain_body_decoded += decoded
+            elif mimeType == 'text/html':
+                html_body_decoded += decoded
+
+     # Extract Netflix verify links
+    verify_link = None
+    if html_body_decoded:
+        soup = BeautifulSoup(html_body_decoded, "html.parser")
+        anchors = soup.find_all('a', href=True)
+
+        # Get the 3rd link
+        verify_link = anchors[2]['href'].strip() if len(anchors) > 2 else None
+
+        return  verify_link

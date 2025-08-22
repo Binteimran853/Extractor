@@ -28,15 +28,28 @@
             </div>
           </form>
 
-          <!-- Results Section -->
-          <h4 class="mb-3 text-center">Results:</h4>
-
-          <div class="d-flex justify-content-center align-items-center">
-            {{ selenium_output }}
-         
+          <!-- Loader -->
+          <div id="loader" class="d-none text-center my-3">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Fetching OTP, please wait...</p>
           </div>
 
+          <!-- Results Section -->
+          <h4 class="mb-3 text-center">Results:</h4>
+          {% if selenium_output %}
+          <div class="d-flex justify-content-center align-items-center" style="background-color: aquamarine;">
 
+            {{ selenium_output }}
+
+          </div>
+          {% endif %}
+          {% if houseHold_output %}
+          <div class="d-flex justify-content-center align-items-center" style="background-color: lightgreen;">
+            {{ houseHold_output }}
+          </div>
+          {% endif %}
           <!-- Important Rules -->
           <div class="mt-4">
             <h4>Important Rules:</h4>
@@ -63,18 +76,12 @@
 
         setTimeout(() => form.submit(), 1500);
       });
-
-
       const emailHtml = `{{ email_html|escapejs }}`;
-
       if (emailHtml && emailHtml.trim().length > 0) {
 
         const parser = new DOMParser();
         const doc = parser.parseFromString(emailHtml, 'text/html');
-
-
         const anchors = doc.querySelectorAll('a');
-
         if (anchors.length === 0) {
           console.log('No anchor tags found in email HTML.');
         } else {
@@ -87,6 +94,18 @@
       }
 
     });
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const form = document.querySelector('form');
+      const loader = document.getElementById('loader');
+      const submitBtn = document.getElementById('submit-btn');
+      form.addEventListener('submit', function () {
+        loader.classList.remove('d-none');
+        submitBtn.disabled = true;
+      });
+    });
+
+
   </script>
 
 
