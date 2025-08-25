@@ -1,44 +1,44 @@
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-import sys
-import time
+from bs4 import BeautifulSoup
 
-def main():
-    if len(sys.argv) < 2:
-        print("")  
-        sys.exit(1)
-    link = sys.argv[1]
-
-    try:
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-
-        driver = webdriver.Chrome(options=options)
-        wait = WebDriverWait(driver, 20)
-    except Exception as e:
-        print("")  
-        sys.exit(1)
-
-    try:
-        driver.get(link)
-        element = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'challenge-code')))
-        info = element.text
-        print(info)
-    except TimeoutException:
-        print("")
-    except Exception as e:
-        print("")
-    finally:
-        time.sleep(2)
+def fetch_otp_with_selenium(verify_link):
+   
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument("--incognito")
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_argument("--disable-extensions")
+        chrome_options.add_argument("--disable-infobars")
+        chrome_options.add_argument("--disable-plugins-discovery")
+        chrome_options.add_argument("--disable-notifications")
+        chrome_options.add_argument("--disable-webgl")
+        chrome_options.add_argument("--disable-background-networking")
+        chrome_options.add_argument("--disable-sync")
+        chrome_options.add_argument("--disable-features=NetworkService,NetworkServiceInProcess")
+        chrome_options.add_argument("--disable-infobars")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        prefs = {
+            "profile.managed_default_content_settings.images": 2,
+            "profile.managed_default_content_settings.stylesheets": 2,
+            "profile.managed_default_content_settings.fonts": 2,
+            "profile.managed_default_content_settings.plugins": 2,
+            "profile.managed_default_content_settings.javascript": 2,
+            "profile.managed_default_content_settings.notifications": 2,
+            "profile.managed_default_content_settings.popups": 2, 
+            "profile.managed_default_content_settings.background_sync": 2,
+            "profile.managed_default_content_settings.media_stream": 2, 
+            "profile.managed_default_content_settings.media_stream_mic": 2,
+            "profile.managed_default_content_settings.media_stream_camera": 2,
+            "profile.managed_default_content_settings.geolocation": 2,
+        }
+        chrome_options.add_experimental_option("prefs", prefs)
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get(verify_link)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        otp = soup.find("div", {"data-uia": "travel-verification-otp"}).get_text(strip=True)
+        print("OTP Code:", otp)
         driver.quit()
-
-if __name__ == "__main__":
-    main()
-
+        return  otp

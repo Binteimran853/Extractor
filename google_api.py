@@ -1,12 +1,15 @@
 import re
 import os
 from base64 import urlsafe_b64decode
-from urllib.parse import unquote
 from bs4 import BeautifulSoup
-from google.auth.transport.requests import Request
+import requests
+from selenium_test import fetch_otp_with_selenium
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+
+
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
@@ -28,9 +31,9 @@ def authenticate_gmail():
 
 
 def get_latest_code(service, user_input):
+    
     query = (
         f'from:info@account.netflix.com to:{user_input} '
-        'subject:"Your Netflix temporary access code"'
         'label:unread in:inbox newer_than:15m'
     )
     results = service.users().messages().list(userId='me', q=query, maxResults=5).execute()
@@ -38,7 +41,7 @@ def get_latest_code(service, user_input):
 
     if not messages:
         print("No messages found.")
-        return None, []
+        return None
 
     msg_id = messages[0]['id']
     msg = service.users().messages().get(userId='me', id=msg_id, format='full').execute()
@@ -49,49 +52,41 @@ def get_latest_code(service, user_input):
                 yield from get_parts(part)
         else:
             yield payload
-
-    plain_body_decoded = ''
-    html_body_decoded = ''
-
+    verify_link = None
+    body_decoded = ''
     for part in get_parts(msg['payload']):
         mimeType = part.get('mimeType')
         data = part['body'].get('data')
         if data:
             decoded = urlsafe_b64decode(data).decode('utf-8', errors='ignore')
-            if mimeType == 'text/plain':
-                plain_body_decoded += decoded
-            elif mimeType == 'text/html':
-                html_body_decoded += decoded
-
-    # Extract OTP
-    match = re.search(r'\b\d{4,8}\b', plain_body_decoded) or re.search(r'\b\d{4,8}\b', html_body_decoded)
-    otp = match.group(0) if match else None
-    print(otp)
-    # Extract Netflix verify link
-    verify_link = None
-    if html_body_decoded:
-        soup = BeautifulSoup(html_body_decoded, "html.parser")
-        anchors = soup.find_all('a', href=True)
-
-        for a in anchors:
-            href = a['href'].strip()
-
-           
-            if href.startswith("https://www.google.com/url?q="):
-                href = unquote(href.split("q=")[1].split("&")[0])
-
-            # Match the Netflix verification link
-            if "/account/travel/verify" in href and "messageGuid=" in href:
-                verify_link = href
-                print("Netflix Verification Link Found:", verify_link)
+            if mimeType in ['text/plain', 'text/html']:
+                 body_decoded += decoded
+            link = re.search(r'https://www\.netflix\.com/account/travel/verify\?[^"\s<\]]+', body_decoded)
+            if link:
+                verify_link = link.group(0)
+                print("Netflix Verify Link for otp:", verify_link)
                 break
-
-    return html_body_decoded, verify_link
-
+            else: print("No link found")
+    #  prevent error if no link found
+    if not verify_link:
+        print("No Netflix verify link found in email.")
+        return None
+    otp=''
+    # GET CODE USING REQUEST
+    response = requests.get(verify_link)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, "html.parser")
+        otp_element = soup.find(attrs={"data-uia": "travel-verification-otp"})
+        if otp_element:
+            print("OTP Code:", otp_element.get_text(strip=True))
+            otp=otp_element.get_text(strip=True)
+            return otp 
+    else: ## GET CODE USING SELENIUM
+        return  fetch_otp_with_selenium(verify_link)
+    
 def get_household_link(service, user_input):
     query = (
         f'from:info@account.netflix.com to:{user_input} '
-        'subject:"Important: How to update your Netflix household"'
         'label:unread in:inbox newer_than:15min'
     )
     results = service.users().messages().list(userId='me', q=query, maxResults=5).execute()

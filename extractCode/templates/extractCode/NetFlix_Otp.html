@@ -7,6 +7,7 @@
   <title>Netflix OTP Extractor</title>
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body class="bg-light bg-white">
@@ -38,18 +39,37 @@
 
           <!-- Results Section -->
           <h4 class="mb-3 text-center">Results:</h4>
+
+          {% if message %}
+          <div class="alert alert-danger text-center">
+            {{ message }}
+          </div>
+          {% else %}
+
           {% if selenium_output %}
-          <div class="d-flex justify-content-center align-items-center" style="background-color: aquamarine;">
-
+          <!-- OTP Output -->
+          <div class="d-flex justify-content-center align-items-center" style="background-color: yellow;">
             {{ selenium_output }}
+          </div>
 
+          {% elif houseHold_output %}
+          <!-- Household Link Output -->
+          <div class="d-flex justify-content-center align-items-center mt-3">
+            <div class="d-flex justify-content-between align-items-center" style="font-size: 12px; background-color: transparent; border: 0.5px solid rgb(215, 215, 215); 
+         border-radius: 5px; padding: 10px; max-width: 90%; width: 400px; 
+         height: 50px; overflow-x: auto; white-space: nowrap;">
+              <span class="me-2">{{ houseHold_output }}</span>
+            </div>
+            <i class="fa-solid fa-copy copy-btn ms-2" style="cursor: pointer;"
+              onclick="copyToClipboard('{{ houseHold_output }}')" title="Click to copy"></i>
           </div>
           {% endif %}
-          {% if houseHold_output %}
-          <div class="d-flex justify-content-center align-items-center" style="background-color: lightgreen;">
-            {{ houseHold_output }}
-          </div>
+
           {% endif %}
+
+
+
+
           <!-- Important Rules -->
           <div class="mt-4">
             <h4>Important Rules:</h4>
@@ -69,31 +89,11 @@
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const form = document.querySelector('form');
-
-      form.addEventListener('submit', function (event) {
-
-        setTimeout(() => form.submit(), 1500);
-      });
-      const emailHtml = `{{ email_html|escapejs }}`;
-      if (emailHtml && emailHtml.trim().length > 0) {
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(emailHtml, 'text/html');
-        const anchors = doc.querySelectorAll('a');
-        if (anchors.length === 0) {
-          console.log('No anchor tags found in email HTML.');
-        } else {
-          anchors.forEach((a, i) => {
-            console.log(`Anchor ${i + 1} href:`, a.href);
-          });
-        }
-      } else {
-        console.log('No email HTML content to display.');
-      }
-
-    });
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Link copied to clipboard!");
+      })
+    }
 
     document.addEventListener('DOMContentLoaded', function () {
       const form = document.querySelector('form');
